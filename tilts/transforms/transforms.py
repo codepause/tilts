@@ -12,7 +12,8 @@ try:
     from tsfresh.utilities.dataframe_functions import roll_time_series
     from tsfresh import extract_features, select_features
 except ImportError:
-    print('Tsfresh transform is not available due package is not installed')
+    import logging
+    logging.warning('Tsfresh transform is not available due package is not installed')
 
 from epta.core.tool import BaseTool
 import epta.core.base_ops as ecb
