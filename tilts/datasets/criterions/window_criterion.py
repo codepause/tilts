@@ -11,7 +11,7 @@ class WindowCriterion(FlatCriterion):
         """
         :param delta_start: relative timedelta to block idx
         :param delta_end: relative timedelta to block idx
-        :param cut: how to cut tail (_x___|_t___) -> (_x___(t)|_____). Tuple for start and end
+        :param rounds: tuple for start and end to round: (hours_up, hours_down) ...
         """
         self._delta_start = delta_start
         self._delta_end = delta_end
@@ -68,7 +68,6 @@ class WindowCriterion(FlatCriterion):
                         seconds=1)
                 elif to == 'down':
                     new_key = time_key.replace(**replace_kwargs)
-            # print(time_key, 'changed to', new_key)
             new_keys.append(new_key)
         start_key, end_key = new_keys
         new_data = block.data.loc[start_key:end_key]
