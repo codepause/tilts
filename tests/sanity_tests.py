@@ -34,7 +34,7 @@ def create_config():
     config.features_target = 'Close'
 
     base_transform = dtr.Compose([
-        dtr.TakeFromDate(date_from=config.load_from_date),
+        dtr.Loc(date_from=config.load_from_date),
         # dtr.DatetimeIndexFilter(hour=range(11, 20)),  # 20 not included
         # dtr.ToDaily(4)
         # dtr.DropColumns([('Low', 2), ('High', 2)]),
@@ -91,9 +91,9 @@ def create_config():
     config.data_train_pipeline = DataTransforms([
         # dtr.ApplyToEach(cfg.base_transforms_per),  # because some operations are not on index
         dtr.Compose([
-            dtr.Slice(start=config.max_timeshift),
+            dtr.Iloc(start=config.max_timeshift),
             dtr.Dropna(), dtr.AsType('float32'),
-            dtr.Slice(end=-config.val_samples)
+            dtr.Iloc(end=-config.val_samples)
         ]),
         dtr.PdIndexLexsort(axis=1),
         dsc.MultiScaler(name='OpenScaler', scaler_mapping={'mid': dsc.OpenScaler}),
@@ -107,11 +107,11 @@ def create_config():
     config.data_val_pipeline = DataTransforms([
         # dtr.ApplyToEach(cfg.base_transforms_per),
         dtr.Compose([
-            # dtr.Slice(start=-cfg.val_samples),
-            dtr.Slice(start=-config.val_samples * 2),
+            # dtr.Iloc(start=-cfg.val_samples),
+            dtr.Iloc(start=-config.val_samples * 2),
             dtr.Dropna(),
             dtr.AsType('float32'),
-            dtr.Slice(end=-config.val_samples)
+            dtr.Iloc(end=-config.val_samples)
         ]),
         dtr.PdIndexLexsort(axis=1),
         dsc.MultiScaler(name='OpenScaler', scaler_mapping={'mid': dsc.OpenScaler}),
@@ -122,7 +122,7 @@ def create_config():
     config.data_test_pipeline = DataTransforms([
         # dtr.ApplyToEach(cfg.base_transforms_per),
         dtr.Compose([
-            dtr.Slice(start=-config.val_samples),
+            dtr.Iloc(start=-config.val_samples),
             dtr.Dropna(),
             dtr.AsType('float32')
         ]),
@@ -176,6 +176,7 @@ def get_api_data(cfg: EasyDict) -> dict:
 if __name__ == '__main__':
     config = create_config()
     data = get_api_data(config)
+
 
 
 
