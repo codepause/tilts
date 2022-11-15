@@ -123,7 +123,7 @@ class Invert(DfTool):
 class ToMid(DfTool):
     """Makes mid from ask and bid"""
 
-    def __init__(self, *args, name: str = 'ToMid', **kwargs):
+    def __init__(self, name: str = 'ToMid', **kwargs):
         super(ToMid, self).__init__(name=name, **kwargs)
 
     def use(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
@@ -156,7 +156,7 @@ class ToMid(DfTool):
 class ToDaily(DfTool):
     """Makes days from hours. Works on mid only currently"""
 
-    def __init__(self, day_len: int, group_by: list = ['year', 'month', 'day'], verbose=False, name: str = 'ToDaily',
+    def __init__(self, day_len: int, group_by: tuple = ('year', 'month', 'day'), verbose=False, name: str = 'ToDaily',
                  **kwargs):
         self.day_len = day_len
         self.group_by = group_by  # how to group data by time index. like ['date', 'hour', 'minute']
@@ -165,7 +165,8 @@ class ToDaily(DfTool):
         self.__apply_group = {'mid', 'ask', 'bid', 'volume'}
         super(ToDaily, self).__init__(name=name, **kwargs)
 
-    def __filter_day(self, df: pd.DataFrame, key: str) -> Union[pd.DataFrame, None]:
+    @staticmethod
+    def __filter_day(df: pd.DataFrame, key: str) -> Union[pd.DataFrame, None, int, float, np.ndarray]:
         if key == 'Open':
             return df[key].iloc[0]
         elif key == 'High':
@@ -261,7 +262,7 @@ class Concat(ecb.Concatenate, DfTool):
 
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + '('
-        for t in self.transforms:
+        for t in self.tools:
             format_string += '\n'
             format_string += '    {0}'.format(t)
         format_string += '\n)'
@@ -329,7 +330,7 @@ class DatetimeIndexFilter(DfTool):
 
         """
         mask = df.index.map(lambda x: np.all(
-            [x.__getattribute__(attr_name) in attr_values for attr_name, attr_values in self.sets.items()])) == True
+            [x.__getattribute__(attr_name) in attr_values for attr_name, attr_values in self.sets.items()])) is True
         return df[mask]
 
     def __repr__(self) -> str:
@@ -418,8 +419,8 @@ class Tfresh(DfTool):
 class ApplyToEach(DfTool):
     """ Apply transform to every column in multiindex """
 
-    def __init__(self, transforms: Union[
-        List[DfTool], Dict[str, DfTool], DfTool, Dict[str, List[DfTool]]] = None, name: str = 'ApplyToEach', **kwargs):
+    def __init__(self, transforms: Union[List[DfTool], Dict[str, DfTool], DfTool, Dict[str, List[DfTool]]] = None,
+                 name: str = 'ApplyToEach', **kwargs):
         if not transforms:
             self.transforms = Eye()
         else:
@@ -510,7 +511,8 @@ class GroupNews(DfTool):
         self.granularity = granularity
         super(GroupNews, self).__init__(name=name, **kwargs)
 
-    def _filter_data(self, df_group: pd.DataFrame) -> pd.DataFrame:
+    @staticmethod
+    def _filter_data(df_group: pd.DataFrame) -> pd.DataFrame:
         """
 
         Args:
@@ -597,6 +599,7 @@ class FlattenNews(DfTool):
 
 class ClockLoc(DfTool):
     def __init__(self, clock: 'Clock', name: str = 'ClockLoc', **kwargs):
+        # Used for backtesting
         self.clock = clock
         super(ClockLoc, self).__init__(name=name, **kwargs)
 
@@ -636,9 +639,11 @@ class PdIndexLexsort(DfTool):
 class TAlib(DfTool):
     """TAlib wrapper for pickle support"""
 
-    def __init__(self, fnc, args, params, name: str = 'TAlib', **kwargs):
+    def __init__(self, fnc, args, params=None, name: str = 'TAlib', **kwargs):
         self.fnc = fnc
         self.args = args
+        if params is None:
+            params = dict()
         self.params = params
         super(TAlib, self).__init__(name=name, **kwargs)
 
