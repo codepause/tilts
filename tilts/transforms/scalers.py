@@ -178,10 +178,10 @@ class MultiScaler:
 
         """
         if self.scaler_mapping_depth == 2:
-            scaler_instance = self.scaler_mapping.get(spread_name, None)
+            scaler_instance = self.scaler_mapping.get(spread_name, self.default_scaler)
         elif self.scaler_mapping_depth == 3:
             temp = self.scaler_mapping.get(pair_name, dict())
-            scaler_instance = temp.get(spread_name, None)
+            scaler_instance = temp.get(spread_name, self.default_scaler)
         else:
             scaler_instance = self.default_scaler
 
@@ -213,11 +213,12 @@ class MultiScaler:
             for spread_name in spread_names:
                 self.scale_info[pair_name][spread_name] = self.scale_info[pair_name].get(spread_name, dict())
                 feature_df = df.xs((pair_name, spread_name), axis=1, drop_level=False, level=0)
-                feature_names = feature_df.columns.get_level_values(0).unique()
+                feature_names = feature_df.columns.get_level_values(2).unique()
                 self.scale_info[pair_name][spread_name]['feature_names'] = list(feature_names)
                 self.scale_info[pair_name][spread_name]['scaler'] = self._fit_on_features(feature_df, pair_name,
                                                                                           spread_name,
                                                                                           is_train=is_train)
+        return
 
     def transform(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
         """
