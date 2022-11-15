@@ -13,6 +13,7 @@ try:
     from tsfresh import extract_features, select_features
 except ImportError:
     import logging
+
     logging.warning('Tsfresh transform is not available due package is not installed')
 
 from epta.core.tool import BaseTool
@@ -286,31 +287,6 @@ class Eye(DfTool):
         return df
 
 
-class TakeFromDate(DfTool):
-    """Slice data"""
-
-    def __init__(self, date_from: pd.Timestamp = None, date_to: pd.Timestamp = None, name: str = 'TakeFromDate',
-                 **kwargs):
-        self.date_from = date_from
-        self.date_to = date_to
-        super(TakeFromDate, self).__init__(name=name, **kwargs)
-
-    def use(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-        """
-
-        Args:
-            df(pd.DataFrame): Input data frame
-
-        Returns:
-            pd.DataFrame: sliced df
-
-        """
-        return df.loc[self.date_from:self.date_to]
-
-    def __repr__(self) -> str:
-        return self.__class__.__name__ + f'({self.date_from}, {self.date_to})'
-
-
 class DropColumns(DfTool):
     """Drop columns"""
 
@@ -325,7 +301,7 @@ class DropColumns(DfTool):
             df(pd.DataFrame): Input data frame
 
         Returns:
-            pd.DataFrame: sliced df
+            pd.DataFrame: df with dropped columns
 
         """
         for column_name, column_level in self.columns_to_drop:
@@ -483,11 +459,36 @@ class Dropna(DfTool):
         return df.dropna(*self.args, **self.kwargs)
 
 
-class Slice(DfTool):
+class Loc(DfTool):
+    """Slice data by timestamp"""
+
+    def __init__(self, date_from: pd.Timestamp = None, date_to: pd.Timestamp = None, name: str = 'TakeFromDate',
+                 **kwargs):
+        self.date_from = date_from
+        self.date_to = date_to
+        super(Loc, self).__init__(name=name, **kwargs)
+
+    def use(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+        """
+
+        Args:
+            df(pd.DataFrame): Input data frame
+
+        Returns:
+            pd.DataFrame: sliced df by timestamp (loc)
+
+        """
+        return df.loc[self.date_from:self.date_to]
+
+    def __repr__(self) -> str:
+        return self.__class__.__name__ + f'({self.date_from}, {self.date_to})'
+
+
+class Iloc(DfTool):
     def __init__(self, start: int = None, end: int = None, name: str = 'Slice', **kwargs):
         self.start = start
         self.end = end
-        super(Slice, self).__init__(name=name, **kwargs)
+        super(Iloc, self).__init__(name=name, **kwargs)
 
     def use(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
         return df.iloc[self.start:self.end]
