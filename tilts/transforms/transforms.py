@@ -462,10 +462,10 @@ class Dropna(DfTool):
 class Loc(DfTool):
     """Slice data by timestamp"""
 
-    def __init__(self, date_from: pd.Timestamp = None, date_to: pd.Timestamp = None, name: str = 'TakeFromDate',
+    def __init__(self, start: pd.Timestamp = None, end: pd.Timestamp = None, name: str = 'TakeFromDate',
                  **kwargs):
-        self.date_from = date_from
-        self.date_to = date_to
+        self.start = start
+        self.end = end
         super(Loc, self).__init__(name=name, **kwargs)
 
     def use(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
@@ -478,10 +478,10 @@ class Loc(DfTool):
             pd.DataFrame: sliced df by timestamp (loc)
 
         """
-        return df.loc[self.date_from:self.date_to]
+        return df.loc[self.start:self.end]
 
     def __repr__(self) -> str:
-        return self.__class__.__name__ + f'({self.date_from}, {self.date_to})'
+        return self.__class__.__name__ + f'({self.start}, {self.end})'
 
 
 class Iloc(DfTool):
