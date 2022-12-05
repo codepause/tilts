@@ -1,3 +1,5 @@
+import os
+
 from easydict import EasyDict
 import pandas as pd
 import numpy as np
@@ -34,7 +36,7 @@ def create_config():
     config.features_target = 'Close'
 
     base_transform = dtr.Compose([
-        dtr.Loc(date_from=config.load_from_date),
+        dtr.Loc(start=config.load_from_date),
         # dtr.DatetimeIndexFilter(hour=range(11, 20)),  # 20 not included
         # dtr.ToDaily(4)
         # dtr.DropColumns([('Low', 2), ('High', 2)]),
@@ -71,7 +73,8 @@ def create_config():
     ])
 
     # transforms to apply to each ticker
-    config.base_transforms_per_ticker = dict(zip(config.pairs_to_load, [all_transforms for _ in config.pairs_to_load]))
+    # multiple transforms:
+    # config.base_transforms_per_ticker = dict(zip(config.pairs_to_load, [all_transforms for _ in config.pairs_to_load]))
 
     config.augments_per_ticker = dict()
 
@@ -87,7 +90,11 @@ def create_config():
     config.val_samples = 5500
 
     # THIS PIPELINE IS APPLIED AFTER DATA WAS LOADED FROM API
-    config.pretransform_pipeline = dtr.ApplyToEach(config.base_transforms_per_ticker)
+    # multiple transforms:
+    # config.pretransform_pipeline = dtr.ApplyToEach(config.base_transforms_per_ticker)
+    # single transform:
+    config.pretransform_pipeline = talib_transform
+
     config.data_train_pipeline = DataTransforms([
         # dtr.ApplyToEach(cfg.base_transforms_per),  # because some operations are not on index
         dtr.Compose([
@@ -158,12 +165,35 @@ def create_config():
     return config
 
 
+def get_example_df() -> pd.DataFrame:
+    h = 50000
+    values = np.random.uniform(1, 100, (h, 5))
+    start = pd.Timestamp(year=2022, month=6, day=1, tz='GMT')
+    end = start + pd.Timedelta(h * 5, unit='m')
+    index = pd.date_range(start, end, freq='5min', inclusive='left')
+    columns = pd.MultiIndex.from_tuples(
+        [
+            ('data', 'mid', 'Open'), ('data', 'mid', 'High'), ('data', 'mid', 'Low'), ('data', 'mid', 'Close'),
+            ('data', 'volume', 'Volume')
+        ]
+    )
+    df = pd.DataFrame(
+        values,
+        index=index,
+        columns=columns
+    )
+    return df
+
+
 def get_api_data(cfg: EasyDict) -> dict:
-    api = SingleFileCsvApi('../../tinkoff/dumps/market_data/5m/BBG004730N88/data.csv')
-    print('csv loaded')
-    loader = DataLoader(api)
-    pairs_data = loader.get_pairs_data_with_transforms(cfg.pairs_to_load)
-    # or pairs_data = api.get_pair_data() for raw data.
+    if os.path.exists('../../tinkoff/dumps/market_data/5m/BBG004730N88/data.csv'):
+        api = SingleFileCsvApi('../../tinkoff/dumps/market_data/5m/BBG004730N88/data.csv')
+        print('csv loaded')
+        loader = DataLoader(api)
+        pairs_data = loader.get_pairs_data_with_transforms(cfg.pairs_to_load)
+        # or pairs_data = api.get_pair_data() for raw data.
+    else:
+        pairs_data = get_example_df()
 
     transformed_pairs_data = cfg.pretransform_pipeline(pairs_data)
     train_pairs_data = cfg.data_train_pipeline(transformed_pairs_data, is_train=True)
@@ -176,9 +206,3 @@ def get_api_data(cfg: EasyDict) -> dict:
 if __name__ == '__main__':
     config = create_config()
     data = get_api_data(config)
-
-
-
-
-
-

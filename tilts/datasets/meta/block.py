@@ -7,7 +7,7 @@ import numpy as np
 
 
 class Block:
-    def __init__(self, df: Union['Dataframe', 'Array'], idx: int, timestamp_idx=None, index=None, columns=None,
+    def __init__(self, df: Union['pd.DataFrame', 'np.ndarray'], idx: int, timestamp_idx=None, index=None, columns=None,
                  connected_block=None):
         """
 
@@ -32,10 +32,15 @@ class Block:
 
         self._connected_block = connected_block
 
-    def spawn(self, df: Union['Dataframe', 'Array', None], index=None, columns=None) -> 'Block':
+    def spawn(self, df: Union['pd.DataFrame', 'np.ndarray', None], index=None, columns=None) -> 'Block':
         """
-        :param df:  new values for block data
-        :return: Returns Block with block.data = df;
+        Args:
+            df (pd.DataFrame): df to spawn block with
+            index (list, pd.MultiIndex): override df index with
+            columns (list, pd.MultiIndex): override df columns with
+
+        Returns:
+            (Block): Block with block.data = df and corresponding columns / index
         """
         new_block = Block(df, self.idx, timestamp_idx=self.timestamp_idx, index=index, columns=columns)
         return new_block
@@ -55,26 +60,26 @@ class Block:
         return self._idx
 
     @property
-    def data(self) -> 'Dataframe':
+    def data(self) -> 'pd.Dataframe':
         """
         :return: current data stored in block
         """
         return self._data
 
-    def as_pd(self) -> 'Dataframe':
+    def as_pd(self) -> 'pd.Dataframe':
         if isinstance(self._data, pd.DataFrame):
             return self._data
         else:
             return pd.DataFrame(self._data, columns=self.columns, index=self.index)
 
-    def as_np(self) -> 'Array':
+    def as_np(self) -> 'np.ndarray':
         if isinstance(self._data, pd.DataFrame):
             return self._data.values
         else:
             return np.array(self._data)
 
     @property
-    def timestamp_idx(self) -> 'Timestamp':
+    def timestamp_idx(self) -> 'pd.Timestamp':
         """
         :return: initial block timestamp
         """
@@ -98,7 +103,7 @@ class Block:
     def columns(self):
         return self._columns
 
-    def apply(self, criterion: Union['Criterion', 'DfTool'], *args, **kwargs) -> 'Block':
+    def apply(self, criterion: Union['Criterion', 'DfTool'], *_, **kwargs) -> 'Block':
         if self.empty:
             return self.spawn(None)
         if isinstance(criterion, DfTool):  # pandas only
@@ -109,7 +114,7 @@ class Block:
         # elif isinstance(criterion, LearnCriterion):
         #     return criterion(self, **kwargs)
         else:
-            raise NotImplementedError('Nor Transfrom or Criterion instance are passed through builder')
+            raise NotImplementedError('Nor Transform or Criterion instance are passed through builder')
 
     def __len__(self):
         if self._data is None:

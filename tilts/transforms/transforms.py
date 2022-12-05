@@ -16,11 +16,11 @@ except ImportError:
 
     logging.warning('Tsfresh transform is not available due package is not installed')
 
-from epta.core.tool import BaseTool
+from epta.core.tool import Tool
 import epta.core.base_ops as ecb
 
 
-class DfTool(BaseTool):
+class DfTool(Tool):
     """ Applicable only to dfs """
 
     def __init__(self, name: str = 'DfTool', **kwargs):
