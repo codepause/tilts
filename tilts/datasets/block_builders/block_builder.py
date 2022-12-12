@@ -1,16 +1,19 @@
 from typing import Union
 
+from epta.core.tool import Tool
+
 from tilts.datasets.meta import Block
 
 
-class BlockBuilder:
+class BlockBuilder(Tool):
     def __init__(self, criterions: list):
         """
         :param criterions: Criterions to check before trying to create block
         """
         self._criterions = criterions
+        super(BlockBuilder, self).__init__(name='BlockBuilder')
 
-    def __call__(self, df: 'Dataframe', block_idx: int, connected_block: 'Block' = None, **kwargs) -> Union[
+    def use(self, df: 'Dataframe', block_idx: int, connected_block: 'Block' = None, **kwargs) -> Union[
         'Block', None]:
         block = Block(df, block_idx, connected_block=connected_block)
         for criterion in self._criterions:

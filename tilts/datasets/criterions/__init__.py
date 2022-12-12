@@ -6,6 +6,3 @@ from .sample_len_criterion import SampleLenCriterion
 from .xs_criterion import XsCriterion
 from .concat_criterion import ConcatCriterion
 from .group_criterion import GroupCriterion
-
-
-from .noise_aug import NoiseAug

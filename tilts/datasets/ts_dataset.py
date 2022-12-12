@@ -5,14 +5,14 @@ import logging
 from torch.utils.data import Dataset
 from typing import Dict, Generator, List
 
-from tilts.pipelines.base_pipeline import Pipeline
+from epta.core.tool import Tool
 from tilts.pipelines.block_augs import BlockAugs
 from tilts.datasets.block_builders.block_builder import BlockBuilder
 
 
 class TimeSeriesDataset(Dataset):
     def __init__(self, df: pd.DataFrame, block_builder: 'BlockBuilder', inline: bool = True,
-                 aug_pipeline: Dict[str, 'Pipeline'] = None):
+                 aug_pipeline: Dict[str, 'Tool'] = None):
         """
         Torch-like dataset from dataframe
 

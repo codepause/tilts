@@ -8,7 +8,7 @@ from sklearn.preprocessing import MinMaxScaler, StandardScaler
 # https://github.com/twopirllc/pandas-ta
 import pandas_ta as ta  # pandas wrapper for talib
 
-import epta.core.base_ops as etb
+import epta.core.base_ops as ecb
 
 from tilts.apis.single_file_csv_api import SingleFileCsvApi
 from tilts.modules.data_loader import DataLoader
@@ -17,7 +17,9 @@ from tilts.transforms import transforms as dtr
 from tilts.transforms import scalers as dsc
 
 from tilts.datasets.block_builders.block_builder import BlockBuilder
+from tilts.datasets.ts_dataset import TimeSeriesDataset, MultipleTimeSeriesDataset
 from tilts.datasets.criterions import *
+from tilts.datasets.augs import NoiseAug
 
 from tilts.pipelines.data_transforms import DataTransforms
 from tilts.pipelines.block_augs import BlockAugs
@@ -35,25 +37,31 @@ def create_config():
     config.max_timeshift = 90
     config.features_target = 'Close'
 
-    base_transform = dtr.Compose([
+    base_transform = ecb.Sequential([
         dtr.Loc(start=config.load_from_date),
-        # dtr.DatetimeIndexFilter(hour=range(11, 20)),  # 20 not included
-        # dtr.ToDaily(4)
-        # dtr.DropColumns([('Low', 2), ('High', 2)]),
     ])
 
     talib_transform_data = [
-        (ta.macd, ['Close'], {}),  # {'fillna': False}),
-        (ta.rsi, ['Close'], {}),  # {'fillna': False}),
-        (ta.massi, ['High', 'Low'], {}),  # {'fillna': False}),
-        # (ta.trend.ichimoku_b, ['High', 'Low'], {'fillna': False}),
-        (ta.trix, ['Close'], {}),  # {'fillna': False})
+        (ta.macd, ['Close'], {'fast': 150, 'slow': 75, 'signal': 50}),
+        (ta.rsi, ['Close'], {}),
+        (ta.massi, ['High', 'Low'], {}),
+        (ta.trix, ['Close'], {}),
     ]
-    talib_transform = dtr.Compose([
+    talib_transform = ecb.Sequential([
         base_transform,
         dtr.Concat([dtr.TAlib(*j) for j in talib_transform_data]),
     ])
-    tsfresh_transform = dtr.Compose([
+
+    final_transform = dtr.Concat([
+        ecb.Sequential([
+            base_transform,
+            dtr.Eye()
+        ]),
+        talib_transform,
+    ])
+
+    """
+    tsfresh_transform = ecb.Sequential([
         dtr.Concat([
             base_transform,
             talib_transform,
@@ -62,19 +70,21 @@ def create_config():
         dtr.Tfresh(min_timeshift=config.min_timeshift, max_timeshift=config.max_timeshift,
                    target=config.features_target)
     ])
+    """
 
-    all_transforms = dtr.Compose([
+    """
+    # transforms to apply to each ticker
+    # multiple transforms:
+    
+    all_transforms = ecb.Sequential([
         dtr.Concat([
             base_transform,
             talib_transform,
-            # tsfresh_transform
         ]),
         dtr.Dropna()
     ])
-
-    # transforms to apply to each ticker
-    # multiple transforms:
-    # config.base_transforms_per_ticker = dict(zip(config.pairs_to_load, [all_transforms for _ in config.pairs_to_load]))
+    config.base_transforms_per_ticker = dict(zip(config.pairs_to_load, [all_transforms for _ in config.pairs_to_load]))
+    """
 
     config.augments_per_ticker = dict()
 
@@ -86,18 +96,16 @@ def create_config():
         }
     )
 
-    # config.train_to_date = pd.Timestamp('')
     config.val_samples = 5500
 
     # THIS PIPELINE IS APPLIED AFTER DATA WAS LOADED FROM API
     # multiple transforms:
-    # config.pretransform_pipeline = dtr.ApplyToEach(config.base_transforms_per_ticker)
+    config.pretransform_pipeline = dtr.ApplyToEach(final_transform)
     # single transform:
-    config.pretransform_pipeline = talib_transform
+    # config.pretransform_pipeline = final_transform
 
     config.data_train_pipeline = DataTransforms([
-        # dtr.ApplyToEach(cfg.base_transforms_per),  # because some operations are not on index
-        dtr.Compose([
+        ecb.Sequential([
             dtr.Iloc(start=config.max_timeshift),
             dtr.Dropna(), dtr.AsType('float32'),
             dtr.Iloc(end=-config.val_samples)
@@ -108,13 +116,11 @@ def create_config():
     ])
 
     # THIS PIPELINE IS APPLIED EVERY DATASET __getitem__ CALL
-    config.x_aug_train_pipeline = BlockAugs([])  # BlockAugs([NoiseAug(), dtr.AsType('float32')])
+    config.x_aug_train_pipeline = BlockAugs([NoiseAug(), dtr.AsType('float32')])
     config.y_aug_train_pipeline = BlockAugs([])
 
     config.data_val_pipeline = DataTransforms([
-        # dtr.ApplyToEach(cfg.base_transforms_per),
-        dtr.Compose([
-            # dtr.Iloc(start=-cfg.val_samples),
+        ecb.Sequential([
             dtr.Iloc(start=-config.val_samples * 2),
             dtr.Dropna(),
             dtr.AsType('float32'),
@@ -127,8 +133,7 @@ def create_config():
     ])
 
     config.data_test_pipeline = DataTransforms([
-        # dtr.ApplyToEach(cfg.base_transforms_per),
-        dtr.Compose([
+        ecb.Sequential([
             dtr.Iloc(start=-config.val_samples),
             dtr.Dropna(),
             dtr.AsType('float32')
@@ -185,6 +190,13 @@ def get_example_df() -> pd.DataFrame:
     return df
 
 
+def build_dataset(df: pd.DataFrame, config: 'EasyDict') -> 'MultipleTimeSeriesDataset':
+    x_dataset = TimeSeriesDataset(df, config.x_builder, aug_pipeline=config.x_aug_train_pipeline)
+    y_dataset = TimeSeriesDataset(df, config.y_builder)
+    dataset = MultipleTimeSeriesDataset([x_dataset, y_dataset])
+    return dataset
+
+
 def get_api_data(cfg: EasyDict) -> dict:
     if os.path.exists('../../tinkoff/dumps/market_data/5m/BBG004730N88/data.csv'):
         api = SingleFileCsvApi('../../tinkoff/dumps/market_data/5m/BBG004730N88/data.csv')
@@ -203,6 +215,12 @@ def get_api_data(cfg: EasyDict) -> dict:
     return {'train': train_pairs_data, 'val': val_pairs_data, 'test': test_pairs_data}
 
 
-if __name__ == '__main__':
+def main():
     config = create_config()
     data = get_api_data(config)
+    dataset = build_dataset(data['train'], config)
+    print(f'Dataset built with {len(dataset)} samples')
+
+
+if __name__ == '__main__':
+    main()

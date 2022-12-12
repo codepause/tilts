@@ -1,11 +1,11 @@
-from tilts.pipelines.base_pipeline import Pipeline
+from epta.core.tool import Tool
 
 
-class BlockAugs(Pipeline):
+class BlockAugs(Tool):
     def __init__(self, pipeline: list):
         self.pipeline = pipeline
 
-    def __call__(self, block: 'Block', *args, **kwargs):
+    def use(self, block: 'Block', *args, **kwargs) -> 'Block':
         for item in self.pipeline:
             block = block.apply(item, **kwargs)  # to support criterions and transforms
         return block

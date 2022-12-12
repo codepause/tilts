@@ -31,9 +31,6 @@ class DfTool(Tool):
         return self.use(df, **kwargs)
 
 
-class Compose(ecb.Sequential):
-    pass
-
 
 class Invert(DfTool):
     """Inverts pandas df USD_EUR to EUR_USD with respect to ask/bid and high/low"""
@@ -603,7 +600,7 @@ class ClockLoc(DfTool):
         self.clock = clock
         super(ClockLoc, self).__init__(name=name, **kwargs)
 
-    def __call__(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    def use(self, df: pd.DataFrame, **kwargs) -> pd.DataFrame:
         """
         Args:
             df(pd.DataFrame): Input data frame

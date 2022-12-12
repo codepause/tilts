@@ -3,6 +3,7 @@ import numpy as np
 import re
 from typing import List, Tuple
 
+from epta.core.tool import Tool
 from .transforms import Invert
 
 
@@ -56,7 +57,7 @@ def get_pair_name_delimiter(pair_name: str) -> str:
     return delimiter
 
 
-class Multiply:
+class Multiply(Tool):
     """Multiplication of two frames"""
     feature_names_to_drop: Tuple[str]
 
@@ -66,6 +67,7 @@ class Multiply:
         # mapping for name replacement on level_1 and level_2
         self.spread_level_replace = {'ask': 'ask', 'bid': 'bid'}
         self.feature_level_replace = {'High': 'High', 'Low': 'Low'}
+        super(Multiply, self).__init__(name='Multiply')
 
     def multiply_level_2(self, df_1_level_2: pd.DataFrame, df_2_level_2: pd.DataFrame) -> pd.DataFrame:
         """
@@ -154,7 +156,7 @@ class Multiply:
         """
         return pair_names_1[0] + pair_name_1_delimiter + pair_names_2[-1]
 
-    def __call__(self, df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
+    def use(self, df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
         """
         Dividing by levels in case of replacing level names. First drop self.feature_names_to_drop
 
@@ -184,7 +186,7 @@ class Multiply:
         return self.__class__.__name__ + '()'
 
 
-class Divide:
+class Divide(Tool):
     """Division of two frames"""
     feature_names_to_drop: Tuple[str]
 
@@ -194,6 +196,7 @@ class Divide:
         # mapping for name replacement on level_1 and level_2
         self.spread_level_replace = {'ask': 'bid', 'bid': 'ask'}
         self.feature_level_replace = {'High': 'High', 'Low': 'Low'}
+        super(Divide, self).__init__(name='Divide')
 
     def divide_level_2(self, df_1_level_2: pd.DataFrame, df_2_level_2: pd.DataFrame) -> pd.DataFrame:
         """
@@ -285,7 +288,7 @@ class Divide:
         """
         return pair_names_1[0] + pair_name_1_delimiter + pair_names_2[0]
 
-    def __call__(self, df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
+    def use(self, df_1: pd.DataFrame, df_2: pd.DataFrame) -> pd.DataFrame:
         """
         Dividing by levels in case of replacing level names. First drop self.feature_names_to_drop
 

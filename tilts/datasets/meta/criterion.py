@@ -1,12 +1,13 @@
 import abc
 
+from epta.core.tool import Tool
 
-class Criterion(abc.ABC):
+class Criterion(Tool, abc.ABC):
     """
     Dummy class for dataset filtering
     """
     @abc.abstractmethod
-    def __call__(self, block: 'Block', *args, **kwargs) -> 'Block':
+    def use(self, block: 'Block', *args, **kwargs) -> 'Block':
         pass
 
     def reset(self):
@@ -26,7 +27,7 @@ class FlatCriterion(Criterion, abc.ABC):
     def apply(self, *args, **kwargs) -> 'Block':
         pass
 
-    def __call__(self, *args, **kwargs) -> 'Block':
+    def use(self, *args, **kwargs) -> 'Block':
         return self.apply(*args, **kwargs)
 
 
@@ -43,7 +44,7 @@ class LearnCriterion(Criterion, abc.ABC):
     def transform(self, *args, **kwargs) -> 'Block':
         pass
 
-    def __call__(self, *args, **kwargs) -> 'Block':
+    def use(self, *args, **kwargs) -> 'Block':
         if kwargs.get('mode') == 'fit':
             return self.fit(*args, **kwargs)
         elif kwargs.get('mode') == 'transform':

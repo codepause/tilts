@@ -1,10 +1,10 @@
 import pandas as pd
 
+from epta.core.tool import Tool
 from tilts.transforms.scalers import MultiScaler
-from tilts.pipelines.base_pipeline import Pipeline
 
 
-class DataTransforms(Pipeline):
+class DataTransforms(Tool):
     def __init__(self, pipeline: list):
         self.pipeline = pipeline
         self.scalers = list()
@@ -18,7 +18,7 @@ class DataTransforms(Pipeline):
             data = item(data)
         return data
 
-    def __call__(self, pairs_data: pd.DataFrame, *args, **kwargs):
+    def use(self, pairs_data: pd.DataFrame, *args, **kwargs):
         res = pairs_data
         is_train = kwargs.get('is_train', False)
         for item in self.pipeline:
